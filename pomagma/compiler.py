@@ -37,7 +37,7 @@ class Variable(Expression):
     def get_constants(self):
         return set()
 
-    def get_tests(self):
+    def get_events(self):
         return set()
 
 
@@ -61,10 +61,10 @@ class Compound(Expression):
     def get_atom(self):
         return self.__class__(self.name, *map(Variable, self.children))
 
-    def get_tests(self):
+    def get_events(self):
         result = set([self.get_atom()])
         for c in self.children:
-            result |= c.get_tests()
+            result |= c.get_events()
         return result
 
 
@@ -73,10 +73,30 @@ class Function(Compound):
 
 
 class Relation(Compound):
-    pass
+    def iter_ensurers(self):
+        yield self
 
 
-EQUAL = lambda x, y: Relation('EQUAL', x, y)
+class Equation(Relation):
+    def __init__(self, lhs, rhs):
+        Relation.__init__(self, 'EQUAL', lhs, rhs)
+
+    def get_atom(self):
+        return self.__class__(*map(Variable, self.children))
+
+    def iter_ensurers(self):
+        print 'DEBUG', self
+        lhs, rhs = self.children
+        assert isinstance(lhs, Function) or isinstance(rhs, Function)
+        if isinstance(lhs, Function):
+            children = lhs.children + [rhs]
+            yield Relation(lhs.name, *children)
+        if isinstance(rhs, Function):
+            children = rhs.children + [lhs]
+            yield Relation(rhs.name, *children)
+
+
+EQUAL = lambda x, y: Equation(x, y)
 LESS = lambda x, y: Relation('LESS', x, y)
 NLESS = lambda x, y: Relation('NLESS', x, y)
 
@@ -98,6 +118,9 @@ def add_costs(*args):
 class Strategy(object):
     def cost(self):
         return math.log(self.op_count()) / LOG_OBJECT_COUNT
+
+
+# TODO add Compound strategy and allow fusing of strategies
 
 
 class Iter(Strategy):
@@ -146,6 +169,7 @@ class Iter(Strategy):
             else:
                 parent = child
                 child = child.body
+        child.optimize()
 
 
 class Let(Strategy):
@@ -245,19 +269,21 @@ class Sequent(object):
         Return a list of normalized sequents.
         '''
         if not self.succedents:
-            TODO('allow multiple succedents')
-        elif len(self.succedents) > 1:
             TODO('allow empty succedents')
+        elif len(self.succedents) > 1:
+            TODO('allow multiple succedents')
         succedent = self.succedents.copy().pop()
-        succedents = set([succedent.get_atom()])
-        antecedents = union([r.get_tests() for r in self.antecedents] +
-                            [e.get_tests() for e in succedent.children])
-        return [Sequent(antecedents, succedents)]
+        results = []
+        for ensurer in succedent.iter_ensurers():
+            antecedents = union([r.get_events() for r in self.antecedents] +
+                                [e.get_events() for e in ensurer.children])
+            succedents = set([ensurer.get_atom()])
+            results.append(Sequent(antecedents, succedents))
+        return results
 
     def get_events(self):
         return union([s.antecedents for s in self._normalized()])
 
-    # TODO deal with EQUAL succedent where one side need not exist
     def compile(self):
         free = self.get_vars()
         constants = self.get_constants()
