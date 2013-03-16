@@ -257,7 +257,7 @@ def cpp(self, code):
 
 
 @inputs(Code)
-def write_signature(code, functions):
+def write_signature(code, sig):
 
     code('''
         $bar
@@ -266,7 +266,7 @@ def write_signature(code, functions):
         bar = bar,
         ).newline()
 
-    for arity, names in functions.iteritems():
+    for arity, names in sig.iteritems():
         for name in names:
             code('''
                 $Arity $NAME (carrier, schedule_$arity);
@@ -281,10 +281,8 @@ def write_signature(code, functions):
     body = Code()
     body('''
         signature.declare(carrier);
-        signature.declare("LESS", LESS);
-        signature.declare("NLESS", NLESS);
         ''')
-    for arity, names in functions.iteritems():
+    for arity, names in sig:
         for name in names:
             body('''
                 signature.declare("$NAME", $NAME);
@@ -309,12 +307,12 @@ def write_signature(code, functions):
 
 
 @inputs(Code)
-def write_stats_logger(code, functions):
+def write_stats_logger(code, sig):
     body = Code()
-    functions = functions.items()
-    functions.sort(key=lambda (arity, _): -signature.get_nargs(arity))
-    for arity, funs in functions:
-        for name in funs:
+    sig = sig.items()
+    sig.sort(key=lambda (arity, _): -signature.get_nargs(arity))
+    for arity, names in sig:
+        for name in names:
             body('''
                 POMAGMA_INFO("$name:");
                 $name.log_stats();
@@ -327,12 +325,6 @@ def write_stats_logger(code, functions):
         {
             carrier.log_stats();
 
-            POMAGMA_INFO("LESS:");
-            LESS.log_stats();
-
-            POMAGMA_INFO("NLESS:");
-            NLESS.log_stats();
-
             $body
 
             sampler.log_stats();
@@ -343,32 +335,34 @@ def write_stats_logger(code, functions):
 
 
 @inputs(Code)
-def write_merge_task(code, functions):
+def write_merge_task(code, sig):
     body = Code()
     body('''
         const Ob dep = task.dep;
         const Ob rep = carrier.find(dep);
         POMAGMA_ASSERT(dep > rep, "ill-formed merge: " << dep << ", " << rep);
-        bool invalid = NLESS.find(dep, rep) or NLESS.find(rep, dep);
-        POMAGMA_ASSERT(not invalid, "invalid merge: " << dep << ", " << rep);
+        ''')
+    if 'NLESS' in sig['BinaryRelation']:
+        body('''
+            bool valid = not (NLESS.find(dep, rep) or NLESS.find(rep, dep));
+            POMAGMA_ASSERT(valid, "invalid merge: " << dep << ", " << rep);
+            ''')
+    else:
+        # TODO ensure no two nullary functions are merged
+        pass
 
+    body('''
         std::vector<std::thread> threads;
-        threads.push_back(std::thread(
-            &BinaryRelation::unsafe_merge,
-            &LESS,
-            dep));
-        threads.push_back(std::thread(
-            &BinaryRelation::unsafe_merge,
-            &NLESS,
-            dep));
         ''')
 
-    functions = [(name, arity, signature.get_nargs(arity))
-                 for arity, funs in functions.iteritems()
-                 for name in funs]
-    functions.sort(key = lambda (name, arity, argc): -argc)
+    sig = [
+        (name, arity, signature.get_nargs(arity))
+        for arity, names in sig.iteritems()
+        for name in names
+        ]
+    sig.sort(key=lambda (name, arity, argc): -argc)
 
-    for name, arity, argc in functions:
+    for name, arity, argc in sig:
         if argc <= 1:
             body('$name.unsafe_merge(dep);', name=name)
         else:
@@ -400,19 +394,38 @@ def write_merge_task(code, functions):
 
 
 @inputs(Code)
-def write_ensurers(code, functions):
+def write_ensurers(code, sig):
 
     code('''
         $bar
-        // compound ensurers
+        // ensurers
+
+        inline void ensure_equal (Ob lhs, Ob rhs)
+        {
+            carrier.ensure_equal(lhs, rhs);
+        }
         ''',
         bar = bar,
         ).newline()
 
-    functions = [(name, signature.get_nargs(arity))
-                 for arity, funs in functions.iteritems()
-                 if signature.get_nargs(arity) > 0
-                 for name in funs]
+    for name in sig['BinaryRelation']:
+        code('''
+            inline void ensure_$name (Ob lhs, Ob rhs)
+            {
+                $NAME.insert(lhs, rhs);
+            }
+            ''',
+            name = name.lower(),
+            NAME = name,
+            ).newline()
+
+    functions = [
+        (name, signature.get_nargs(arity))
+        for arity, names in sig.iteritems()
+        if arity in signature.FUNCTION_ARITIES
+        if signature.get_nargs(arity) > 0
+        for name in names
+        ]
 
     def Ob(x):
         return 'Ob %s' % x
@@ -448,6 +461,73 @@ def write_ensurers(code, functions):
                 typed_args2 = ', '.join(map(Ob, vars2)),
                 ).newline()
 
+
+@inputs(Code)
+def write_parser(code, sig):
+
+    code('''
+        $bar
+        // expression parsing
+
+        inline void assume_equal (const char * lhs, const char * rhs)
+        {
+            schedule(AssumeTask(AssumeTask::EQUAL, lhs, rhs));
+        }
+        ''',
+        bar = bar,
+        ).newline()
+
+    for name in sig['BinaryRelation']:
+        code('''
+            inline void assume_$name (const char * lhs, const char * rhs)
+            {
+                schedule(AssumeTask(AssumeTask::$NAME, lhs, rhs));
+            }
+            ''',
+            name = name.lower(),
+            NAME = name,
+            ).newline()
+
+    body = Code()
+    body('''
+        case AssumeTask::EQUAL: {
+            POMAGMA_INFO("assume EQUAL\n\t" << task.lhs << "\n\t" << task.rhs);
+            ensure_equal(lhs, rhs);
+        } break;
+        ''')
+    for name in ['LESS', 'NLESS']:
+        if name in sig['BinaryRelation']:
+        case AssumeTask::LESS: {
+            POMAGMA_INFO("assume LESS\n\t" << task.lhs << "\n\t" << task.rhs);
+            ensure_less(lhs, rhs);
+        } break;
+
+        case AssumeTask::NLESS: {
+            POMAGMA_INFO("assume LESS\n\t" << task.lhs << "\n\t" << task.rhs);
+            ensure_nless(lhs, rhs);
+        } break;
+        ''')
+
+    code('''
+        inline Ob parse_ob (const char * source)
+        {
+            Ob ob = sampler.try_insert(source);
+            POMAGMA_ASSERT(ob, "failed to insert " << source);
+            return ob;
+        }
+
+        void execute (const AssumeTask & task)
+        {
+            Ob lhs = parse_ob(task.lhs);
+            Ob rhs = parse_ob(task.rhs);
+
+            switch (task.type) {
+                $body
+            }
+        }
+        ''',
+        body = wrapindent(body, 8 * ' ')
+        ).newline()
 
 @inputs(Code)
 def write_facts(code, facts):
@@ -705,11 +785,12 @@ def get_functions_used_in(sequents, exprs):
 
 
 @inputs(Code)
-def write_theory(code, rules=None, facts=None):
+def write_theory(code, rules=None, facts=None, negrelations=True):
 
     sequents = set(rules) if rules else set()
     facts = set(facts) if facts else set()
-    functions = get_functions_used_in(sequents, facts)
+    sig = get_functions_used_in(sequents, facts)
+    sig['BinaryRelation'] = ['LESS', 'NLESS'] if negrelations else ['LESS']
 
     code('''
         #include "theory.hpp"
@@ -718,10 +799,11 @@ def write_theory(code, rules=None, facts=None):
         {
         ''').newline()
 
-    write_signature(code, functions)
-    write_stats_logger(code, functions)
-    write_merge_task(code, functions)
-    write_ensurers(code, functions)
+    write_signature(code, sig)
+    write_stats_logger(code, sig)
+    write_merge_task(code, sig)
+    write_ensurers(code, sig)
+    write_parser(code, sig)
     write_facts(code, facts)
     write_full_tasks(code, sequents)
     write_event_tasks(code, sequents)

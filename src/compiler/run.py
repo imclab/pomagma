@@ -114,15 +114,15 @@ def compile(*infiles, **kwargs):
     Compile rules -> C++.
     Optional keyword arguments:
         outfile=OUTFILE
-        #extensional=true # TODO
-        extensional=false
+        extensional=True
+        negrelations=True   # TODO set default to False
     '''
-    outfile = (
-            kwargs.get('outfile') or
-            '{0}.theory.cpp'.format(infiles[-1].split('.')[0])
-            )
+    outfile = kwargs.get(
+            'outfile',
+            '{0}.theory.cpp'.format(infiles[-1].split('.')[0]))
     parse_bool = lambda s: {'true':True, 'false':False}[s.lower()]
     extensional = parse_bool(kwargs.get('extensional', 'true'))
+    negrelations = parse_bool(kwargs.get('negrelations', 'true'))
 
     print '# writing', outfile
     argstring = ' '.join(
@@ -151,7 +151,7 @@ def compile(*infiles, **kwargs):
         argstring = argstring,
         ).newline()
 
-    cpp.write_theory(code, rules, facts)
+    cpp.write_theory(code, rules, facts, negrelations=negrelations)
 
     with open(outfile, 'w') as f:
         f.write(str(code))
