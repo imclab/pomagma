@@ -12,6 +12,12 @@ static-check: FORCE
 	find src | grep '.py$$' | grep -v '_pb2.py' | xargs pyflakes
 	find src | grep '.py$$' | grep -v '_pb2.py' | xargs pep8
 
+py-test: all set-ulimit FORCE
+	POMAGMA_DEBUG= python -m pomagma py-test
+cpp-test: all set-ulimit FORCE
+	POMAGMA_DEBUG= python -m pomagma cpp-test
+js-test: set-ulimit FORCE
+	POMAGMA_DEBUG= python -m pomagma js-test
 unit-test: all set-ulimit FORCE
 	POMAGMA_DEBUG= python -m pomagma unit-test
 batch-test: all set-ulimit FORCE

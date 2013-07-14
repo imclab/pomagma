@@ -16,13 +16,37 @@ def build():
 
 
 @parsable.command
+def py_test(*noseflags):
+    '''
+    Run python unit tests.
+    '''
+    pomagma.util.py_test(*noseflags)
+
+
+@parsable.command
+def cpp_test(*noseflags):
+    '''
+    Run C++ unit tests.
+    '''
+    pomagma.util.cpp_test()
+
+
+@parsable.command
+def js_test(*noseflags):
+    '''
+    Run javascript unit tests.
+    '''
+    pomagma.util.js_test()
+
+
+@parsable.command
 def unit_test(*noseflags):
     '''
-    Run unit tests.
+    Run all unit tests.
     '''
-    pomagma.util.check_call('nosetests', pomagma.util.SRC, *noseflags)
-    pomagma.util.build()
-    pomagma.util.test()
+    pomagma.util.py_test(*noseflags)
+    pomagma.util.cpp_test()
+    pomagma.util.js_test()
 
 
 @parsable.command

@@ -243,7 +243,11 @@ def build():
         check_call('make', '--quiet', '--jobs=%d' % (1 + CPU_COUNT))
 
 
-def test():
+def py_test(*noseflags):
+    check_call('nosetests', SRC, *noseflags)
+
+
+def cpp_test():
     build()
     buildtype = 'debug' if debug else 'release'
     opts = {
@@ -251,6 +255,11 @@ def test():
         'log_level': LOG_LEVEL_DEBUG,
     }
     log_call('make', '-C', BUILD, 'test', **opts)
+
+
+def js_test():
+    with chdir(os.path.join(SRC, 'editor')):
+        log_call('node', 'test.js')
 
 
 def coverity():

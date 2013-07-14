@@ -1,17 +1,14 @@
-/**
- * Tools for safe coding.
- *
- * Copyright (c) 2012, Fritz Obermeyer
- * Dual licensed under the MIT or GPL Version 2 licenses.
- * http://www.opensource.org/licenses/MIT
- * http://www.opensource.org/licenses/GPL-2.0
- */
+// Tools for safe coding.
 
 //------------------------------------------------------------------------------
 // Logging in the main window & web workers
 
 var log;
-if (this.document) { // in main window
+if (typeof process != undefined) { // in node
+
+  log = console.log;
+
+} else if (typeof window !== undefined) { // in main window
 
   if (window.console && window.console.log) {
     log = function (message) { console.log(message); };

@@ -171,6 +171,7 @@ var state = (function(){
       var free = getFreeVariables(line.code);
       assert(_.isEqual(line.free, free), 'wrong free variables: ' + line.code);
       for (var name in free) {
+        assert(definitions[name] !== undefined);
         var occurrencesName = occurrences[name];
         assert(occurrencesName !== undefined, 'missing occurrences: ' + name);
         assert(occurrencesName[id] === null, 'missing occurrence: ' + name);
@@ -183,7 +184,7 @@ var state = (function(){
     return {
       name: line.name,
       code: line.code,
-      free: $.clone(line.free)
+      free: _.clone(line.free)
     };
   };
 
