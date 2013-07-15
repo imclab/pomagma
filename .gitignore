@@ -19,5 +19,5 @@
 /data/
 /build/
 /cov-int/
-/node_modules
+/src/editor/node_modules
 *.egg-info/

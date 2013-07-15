@@ -4,16 +4,18 @@
  * FIXME this is all concurrency-unsafe; client assumes it is the only writer.
  */
 
-var corpus = (function(){
+define(
+    ['underscore', 'jquery', 'assert', 'test', 'log'],
+    function (_, $, assert, test, log) {
 var corpus = {};
 
 IDENTIFIER_RE = /^[^\d\W]\w*(\.[^\d\W]\w*)*$/;
 KEYWORD_RE = /^[A-Z]+$/;
 
-test('assert("asdf".match(IDENTIFIER_RE))');
-test('assert(!"asdf".match(KEYWORD_RE))');
-test('assert("ASDF".match(IDENTIFIER_RE))');
-test('assert("ASDF".match(KEYWORD_RE))');
+test(function(){ assert("asdf".match(IDENTIFIER_RE)) });
+test(function(){ assert(!"asdf".match(KEYWORD_RE)) });
+test(function(){ assert("ASDF".match(IDENTIFIER_RE)) });
+test(function(){ assert("ASDF".match(KEYWORD_RE)) });
 
 var getFreeVariables = function (code) {
   var free = {};
@@ -314,4 +316,4 @@ corpus.findDefinition = state.findDefinition;
 corpus.findOccurrences = state.findOccurrences;
 
 return corpus;
-})();
+});

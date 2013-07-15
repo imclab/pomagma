@@ -1,12 +1,21 @@
-require('underscore');
-require('jquery');
-require('./static/safety.js');
-require('./static/testing.js');
-require('./static/corpus.js');
-require('./static/views.js');
-require('./static/compiler.js');
-require('./static/editor.js');
-require('./static/analyst.js');
-require('./static/ui.js');
+requirejs = require('requirejs');
+requirejs.config({
+  baseUrl: './static/',
+  nodeRequire: require
+});
 
-testAll();
+//requirejs('underscore');
+//requirejs('jquery');
+//requirejs('safety.js');
+//requirejs('testing.js');
+//requirejs('corpus.js');
+//requirejs('views.js');
+//requirejs('compiler.js');
+//requirejs('editor.js');
+//requirejs('analyst.js');
+//requirejs('ui.js');
+
+requirejs(['test', 'corpus'], function (test, corpus) {
+  test.runAll();
+  corpus.validate();
+});
