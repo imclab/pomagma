@@ -1,6 +1,8 @@
 define(['jquery', 'log'], function ($, log) {
 
-  var testing = false;
+  var testing = true;
+  var hasRun = false;
+  var passed = false;
   var allTests = [];
 
   /** @const */
@@ -11,6 +13,8 @@ define(['jquery', 'log'], function ($, log) {
   };
 
   test.testing = function () { return testing; }
+  test.hasRun = function () { return hasRun; }
+  test.passed = function () { return passed; }
 
   test.runAll = function () {
 

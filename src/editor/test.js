@@ -17,5 +17,5 @@ requirejs.config({
 
 requirejs(['test', 'corpus'], function (test, corpus) {
   test.runAll();
-  corpus.validate();
+  setTimeout(process.exit, 2000);
 });
