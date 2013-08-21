@@ -72,13 +72,14 @@ LESS COMP APP CI r APP CI s A   LESS APP A f APP APP f TOP TOP
 #     = (\a,b. (\ab. UNIT ab x) b*a) 
 #     = COMP APP B APP APP C UNIT x COMP APP CB I CB
 
-LESS APP APP COMP C APP B C f x COMP APP B APP APP C UNIT x COMP APP CB I CB
-----------------------------------------------------------------------------
-                           LESS APP APP A f x x
-
-LESS APP APP COMP C APP B C f x COMP APP B APP APP C UNIT x COMP APP CB I CB
-----------------------------------------------------------------------------
-                        EQUAL APP APP V APP A f x x
+# DEBUG
+#LESS APP APP COMP C APP B C f x COMP APP B APP APP C UNIT x COMP APP CB I CB
+#----------------------------------------------------------------------------
+#                           LESS APP APP A f x x
+#
+#LESS APP APP COMP C APP B C f x COMP APP B APP APP C UNIT x COMP APP CB I CB
+#----------------------------------------------------------------------------
+#                        EQUAL APP APP V APP A f x x
 
 
 # TODO get these to compile

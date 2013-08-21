@@ -60,8 +60,11 @@ class Sequent(object):
 
 @inputs(Expression)
 def as_atom(expr):
-    args = [arg.var for arg in expr.args]
-    return Expression(expr.name, *args)
+    if expr.name == 'NOT':
+        return Expression('NOT', as_atom(expr.args[0]))
+    else:
+        args = [arg.var for arg in expr.args]
+        return Expression(expr.name, *args)
 
 
 @inputs(Expression)
@@ -192,17 +195,24 @@ def normalize(seq, bound=set()):
     return result
 
 
+@inputs(Expression)
+def assert_atomic(expr):
+    if expr.is_con():
+        for arg in expr.args:
+            assert_atomic(arg)
+    else:
+        for arg in expr.args:
+            assert arg.arity == 'Variable', expr
+
+
 @inputs(Sequent)
 def assert_normal(seq):
     assert len(seq.succedents) == 1
     for expr in seq.antecedents:
-        for arg in expr.args:
-            assert arg.arity == 'Variable', arg
+        assert_atomic(expr)
     for expr in seq.succedents:
         if expr.arity == 'Equation':
             for arg in expr.args:
-                for arg_arg in arg.args:
-                    assert arg_arg.arity == 'Variable', arg_arg
+                assert_atomic(arg)
         else:
-            for arg in expr.args:
-                assert arg.arity == 'Variable', arg
+            assert_atomic(expr)

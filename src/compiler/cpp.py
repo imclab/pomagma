@@ -80,15 +80,21 @@ def Iter_cpp(self, code, poll=None):
     sets = []
     iter_ = 'carrier.iter()'
     for test in self.tests:
-        assert test.name in ['LESS', 'NLESS'], test.name
-        lhs, rhs = test.args
-        assert lhs != rhs, lhs
-        if self.var == lhs:
-            iter_ = '%s.iter_rhs(%s)' % (test.name, rhs)
-            sets.append('%s.get_Rx_set(%s)' % (test.name, rhs))
+        assert test.name in ['LESS', 'NLESS', 'CONST'], test.name
+        if test.name == 'CONST':
+            arg, = test.args
+            if self.var == arg:
+                iter_ = '%s.iter()' % test.name
+                sets.append('%s.get_set()' % test.name)
         else:
-            iter_ = '%s.iter_lhs(%s)' % (test.name, lhs)
-            sets.append('%s.get_Lx_set(%s)' % (test.name, lhs))
+            lhs, rhs = test.args
+            assert lhs != rhs, lhs
+            if self.var == lhs:
+                iter_ = '%s.iter_rhs(%s)' % (test.name, rhs)
+                sets.append('%s.get_Rx_set(%s)' % (test.name, rhs))
+            else:
+                iter_ = '%s.iter_lhs(%s)' % (test.name, lhs)
+                sets.append('%s.get_Lx_set(%s)' % (test.name, lhs))
     for expr in self.lets.itervalues():
         assert self.var in expr.args,\
             '{} not in {}'.format(self.var, expr.args)
@@ -223,21 +229,29 @@ def Let_cpp(self, code, poll=None):
 def Test_cpp(self, code, poll=None):
     body = Code()
     self.body.cpp(body, poll=poll)
-    args = [arg.name for arg in self.expr.args]
-    if self.expr.name == 'EQUAL':
-        expr = 'carrier.equal({0}, {1})'.format(*args)
-    elif self.expr.name in ['LESS', 'NLESS']:
-        expr = '{0}.find({1}, {2})'.format(self.expr.name, *args)
+    if self.expr.name == 'NOT':
+        expr = self.expr.args[0]
+        parity = False
     else:
-        expr = '{0} == {1}.find({2})'.format(
-            self.expr.var.name, self.expr.name, ', '.join(args))
+        expr = self.expr
+        parity = True
+    args = [arg.name for arg in expr.args]
+    if expr.name == 'EQUAL':
+        cond = 'carrier.equal({0}, {1})'.format(*args)
+    elif expr.name in ['LESS', 'NLESS', 'CONST']:
+        cond = '{0}.find({1})'.format(expr.name, ', '.join(args))
+    else:
+        cond = '{0} == {1}.find({2})'.format(
+            expr.var.name, expr.name, ', '.join(args))
+    if not parity:
+        cond = 'not ({0})'.format(cond)
     code(
         '''
-        if ($expr) {
+        if ($cond) {
             $body
         }
         ''',
-        expr=expr,
+        cond=cond,
         body=wrapindent(body),
     )
 

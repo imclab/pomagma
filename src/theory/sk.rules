@@ -47,3 +47,6 @@ EQUAL APP Y f APP f APP Y f
 EQUAL y APP APP S I y
 ---------------------
      EQUAL y Y
+
+---------
+CONST K x

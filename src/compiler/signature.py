@@ -3,6 +3,7 @@ import re
 
 NARGS_TABLE = {
     'Equation': 2,
+    'UnaryRelation': 1,
     'BinaryRelation': 2,
     'NullaryFunction': 0,
     'InjectiveFunction': 1,
@@ -17,18 +18,21 @@ ARITY_TABLE = {
     'EQUAL': 'Equation',
     'LESS': 'BinaryRelation',
     'NLESS': 'BinaryRelation',
+    'CONST': 'UnaryRelation',
     'CO': 'InjectiveFunction',
     'QUOTE': 'InjectiveFunction',
     'APP': 'BinaryFunction',
     'COMP': 'BinaryFunction',
     'JOIN': 'SymmetricFunction',
     'RAND': 'SymmetricFunction',
+    'NOT': 'UnaryConnective',
     'OPTIONALLY': 'UnaryConnective',
     'EQUIVALENTLY': 'BinaryConnective',
 }
 
 RELATION_ARITIES = frozenset([
     'Equation',
+    'UnaryRelation',
     'BinaryRelation',
 ])
 

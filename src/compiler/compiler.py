@@ -437,7 +437,7 @@ def get_compiled(antecedents, succedent, bound):
     # conditionals
     for a in antecedents:
         # if a.name in ['LESS', 'NLESS']:
-        if a.is_rel():
+        if a.is_rel() or a.is_con():
             if a.vars <= bound:
                 antecedents_a = set_without(antecedents, a)
                 POMAGMA_DEBUG('conditional')
